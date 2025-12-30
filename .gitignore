@@ -37,7 +37,6 @@ wheels/
 *.log
 *.tmp
 *.temp
-.streamlit/
 
 # ==================== IDE / EDITORES ====================
 .vscode/
