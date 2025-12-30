@@ -2,14 +2,28 @@
 Configuración centralizada del proyecto
 """
 import os
-from dotenv import load_dotenv
 
-# Cargar variables de entorno
-load_dotenv()
+# Intentar cargar dotenv (desarrollo local)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
+# Intentar cargar desde Streamlit Secrets (producción)
+try:
+    import streamlit as st
+    if hasattr(st, 'secrets'):
+        # Cargar desde st.secrets si existen
+        for key in ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 
+                    'ALEGRA_API_KEY', 'ALEGRA_EMAIL']:
+            if key in st.secrets:
+                os.environ[key] = str(st.secrets[key])
+except Exception:
+    pass
 
 # ==================== BASE DE DATOS ====================
-# IMPORTANTE: Configurar las credenciales en archivo .env
-# Ver .env.example para referencia
+# IMPORTANTE: Configurar las credenciales en archivo .env o Streamlit Secrets
 DB_CONFIG = {
     "host": os.getenv("DB_HOST", "localhost"),
     "database": os.getenv("DB_NAME", ""),
