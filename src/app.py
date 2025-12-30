@@ -86,6 +86,28 @@ LOGIN_STYLES = """
     .login-container {
         max-width: 400px;
         margin: 50px auto;
+import sys
+import os
+import logging
+from datetime import datetime
+
+# Diagnóstico: log a archivo y consola
+LOG_FILE = "/tmp/streamlit_app_debug.log"
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s %(levelname)s %(message)s",
+    handlers=[
+        logging.FileHandler(LOG_FILE, mode="a"),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logging.info("[INICIO] src/app.py ejecutándose - %s", datetime.now())
+try:
+    logging.info("[DIAG] sys.path: %s", sys.path)
+    logging.info("[DIAG] CWD: %s", os.getcwd())
+    logging.info("[DIAG] Variables de entorno: %s", dict(os.environ))
+except Exception as e:
+    logging.error("[ERROR] Fallo al loguear entorno: %s", e)
         padding: 40px;
         background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
         border-radius: 20px;
