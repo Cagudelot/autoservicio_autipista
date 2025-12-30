@@ -3,6 +3,7 @@ Módulo de Empleados - Control de Turnos (Entrada/Salida)
 """
 import streamlit as st
 from datetime import datetime
+import pytz
 import sys
 import os
 
@@ -175,8 +176,9 @@ def render():
                     
                     # CASO 1: Ya tiene un turno completo hoy - BLOQUEADO
                     if turno_completo and not turno_abierto:
-                        hora_entrada = turno_completo['hora_inicio'].strftime("%H:%M")
-                        hora_salida = turno_completo['hora_salida'].strftime("%H:%M")
+                        tz = pytz.timezone('America/Bogota')
+                        hora_entrada = turno_completo['hora_inicio'].astimezone(tz).strftime("%I:%M %p")
+                        hora_salida = turno_completo['hora_salida'].astimezone(tz).strftime("%I:%M %p")
                         
                         st.markdown(f"""
                         <div class="turno-card bloqueado">
@@ -196,7 +198,8 @@ def render():
                     
                     # CASO 2: Tiene turno abierto - puede marcar SALIDA
                     elif turno_abierto:
-                        hora_entrada = turno_abierto['hora_inicio'].strftime("%H:%M")
+                        tz = pytz.timezone('America/Bogota')
+                        hora_entrada = turno_abierto['hora_inicio'].astimezone(tz).strftime("%I:%M %p")
                         
                         st.markdown(f"""
                         <div class="turno-card salida">
@@ -217,7 +220,8 @@ def render():
                                 if error:
                                     st.error(f"❌ Error al registrar salida: {error}")
                                 else:
-                                    hora_salida = resultado['hora_salida'].strftime("%H:%M:%S")
+                                    tz = pytz.timezone('America/Bogota')
+                                    hora_salida = resultado['hora_salida'].astimezone(tz).strftime("%I:%M:%S %p")
                                     st.session_state.turno_mensaje = f"✅ ¡Salida registrada exitosamente a las {hora_salida}!"
                                     st.session_state.turno_tipo = 'salida'
                                     st.rerun()

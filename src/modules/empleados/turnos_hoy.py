@@ -198,11 +198,13 @@ def render():
         if not df_turnos.empty:
             # Formatear columnas
             df_display = df_turnos.copy()
+            import pytz
+            tz = pytz.timezone('America/Bogota')
             df_display['hora_inicio'] = df_display['hora_inicio'].apply(
-                lambda x: x.strftime("%H:%M:%S") if pd.notna(x) else "—"
+                lambda x: x.astimezone(tz).strftime("%I:%M:%S %p") if pd.notna(x) else "—"
             )
             df_display['hora_salida'] = df_display['hora_salida'].apply(
-                lambda x: x.strftime("%H:%M:%S") if pd.notna(x) else "En curso..."
+                lambda x: x.astimezone(tz).strftime("%I:%M:%S %p") if pd.notna(x) else "En curso..."
             )
             
             # Renombrar columnas

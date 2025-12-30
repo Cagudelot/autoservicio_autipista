@@ -1,3 +1,4 @@
+pytz
 # Sistema de Administración - Supermercado
 # Dependencias del proyecto
 
