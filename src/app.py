@@ -12,25 +12,63 @@ _root_dir = os.path.dirname(_current_dir)
 if _root_dir not in sys.path:
     sys.path.insert(0, _root_dir)
 
-import streamlit as st
-from streamlit_option_menu import option_menu
+# Debug: mostrar path para diagnóstico
+print(f"DEBUG: Current dir: {_current_dir}")
+print(f"DEBUG: Root dir: {_root_dir}")
+print(f"DEBUG: sys.path: {sys.path[:3]}")
 
-from config.settings import APP_CONFIG
-from src.utils.ui_helpers import MENU_STYLES
+try:
+    import streamlit as st
+    print("DEBUG: streamlit OK")
+except Exception as e:
+    print(f"DEBUG ERROR streamlit: {e}")
+    raise
 
-# Importar módulos
-from src.modules.cartera import todos_clientes, kikes
-from src.modules.empleados import registro as registro_empleado
-from src.modules.empleados import turnos as turnos_empleado
-from src.modules.empleados import turnos_hoy as turnos_hoy_empleado
-from src.modules.empleados import gestion_turnos
-from src.modules.configuracion import direcciones_ip
-from src.modules.configuracion import usuarios as gestion_usuarios
-from src.modules import nomina as modulo_nomina
+try:
+    from streamlit_option_menu import option_menu
+    print("DEBUG: option_menu OK")
+except Exception as e:
+    print(f"DEBUG ERROR option_menu: {e}")
+    raise
 
-# Importar funciones de autenticación
-from data_base.controler import autenticar_usuario, get_modulos_usuario
+try:
+    from config.settings import APP_CONFIG
+    print("DEBUG: settings OK")
+except Exception as e:
+    print(f"DEBUG ERROR settings: {e}")
+    raise
 
+try:
+    from src.utils.ui_helpers import MENU_STYLES
+    print("DEBUG: ui_helpers OK")
+except Exception as e:
+    print(f"DEBUG ERROR ui_helpers: {e}")
+    raise
+
+try:
+    # Importar módulos
+    from src.modules.cartera import todos_clientes, kikes
+    from src.modules.empleados import registro as registro_empleado
+    from src.modules.empleados import turnos as turnos_empleado
+    from src.modules.empleados import turnos_hoy as turnos_hoy_empleado
+    from src.modules.empleados import gestion_turnos
+    from src.modules.configuracion import direcciones_ip
+    from src.modules.configuracion import usuarios as gestion_usuarios
+    from src.modules import nomina as modulo_nomina
+    print("DEBUG: modules OK")
+except Exception as e:
+    print(f"DEBUG ERROR modules: {e}")
+    raise
+
+try:
+    # Importar funciones de autenticación
+    from data_base.controler import autenticar_usuario, get_modulos_usuario
+    print("DEBUG: controler OK")
+except Exception as e:
+    print(f"DEBUG ERROR controler: {e}")
+    raise
+
+print("DEBUG: ALL IMPORTS OK!")
 
 # Configuración de página
 st.set_page_config(
