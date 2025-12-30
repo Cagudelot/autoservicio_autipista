@@ -2,13 +2,18 @@
 Dashboard Principal - Sistema de Administración Supermercado
 Punto de entrada de la aplicación Streamlit con Sistema de Autenticación
 """
-import streamlit as st
-from streamlit_option_menu import option_menu
 import sys
 import os
 
-# Agregar el directorio raíz al path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Configurar path ANTES de cualquier otro import
+# Esto es crítico para Streamlit Cloud
+_current_dir = os.path.dirname(os.path.abspath(__file__))
+_root_dir = os.path.dirname(_current_dir)
+if _root_dir not in sys.path:
+    sys.path.insert(0, _root_dir)
+
+import streamlit as st
+from streamlit_option_menu import option_menu
 
 from config.settings import APP_CONFIG
 from src.utils.ui_helpers import MENU_STYLES
