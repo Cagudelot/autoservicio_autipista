@@ -301,12 +301,32 @@ def render():
     st.markdown(CSS_STYLES, unsafe_allow_html=True)
     st.markdown(KIKES_STYLES, unsafe_allow_html=True)
     
-    st.markdown('<p class="main-header">🍕 Dashboard Kikes</p>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-header">Control de deudas por negocio</p>', unsafe_allow_html=True)
+    # Header con botones
+    col_titulo, col_btn1, col_btn2 = st.columns([4, 1, 1])
     
-    col_space, col_btn = st.columns([5, 1])
-    with col_btn:
-        if st.button("🔄 Actualizar", key="kikes_refresh"):
+    with col_titulo:
+        st.markdown('<p class="main-header">🍕 Dashboard Kikes</p>', unsafe_allow_html=True)
+        st.markdown('<p class="sub-header">Control de deudas por negocio</p>', unsafe_allow_html=True)
+    
+    with col_btn1:
+        st.write("")  # Espaciado
+        if st.button("🔄 Sincronizar Alegra", key="sync_kikes", help="Actualizar datos desde Alegra"):
+            with st.spinner("Sincronizando datos desde Alegra..."):
+                try:
+                    import sys
+                    import os
+                    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+                    from services.alegra_api import full_sync_all
+                    full_sync_all()
+                    st.cache_data.clear()
+                    st.success("✅ Sincronización completada")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Error: {str(e)}")
+    
+    with col_btn2:
+        st.write("")  # Espaciado
+        if st.button("🔃 Refrescar", key="kikes_refresh"):
             st.cache_data.clear()
             st.rerun()
     

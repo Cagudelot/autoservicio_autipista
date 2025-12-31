@@ -689,8 +689,11 @@ def full_sync_remisiones_abiertas():
         
         # Obtener datos del cliente
         client = rem.get("client", {})
-        id_cliente = client.get("id")
+        nit_cliente = client.get("identification")
         nombre_cliente = client.get("name", "").strip()
+        
+        # Insertar cliente si no existe y obtener ID local
+        id_cliente = insert_cliente(nit_cliente, nombre_cliente)
         
         # Upsert la remisión
         was_inserted = upsert_remision(numero, id_cliente, fecha, "open", valor, nombre_cliente)
@@ -811,8 +814,11 @@ def full_sync_facturas_abiertas():
         
         # Obtener datos del cliente
         client = inv.get("client", {})
-        id_cliente = client.get("id")
+        nit_cliente = client.get("identification")
         nombre_cliente = client.get("name", "").strip()
+        
+        # Insertar cliente si no existe y obtener ID local
+        id_cliente = insert_cliente(nit_cliente, nombre_cliente)
         
         # Upsert la factura
         was_inserted = upsert_factura(numero, id_cliente, fecha, "open", valor, balance, nombre_cliente)

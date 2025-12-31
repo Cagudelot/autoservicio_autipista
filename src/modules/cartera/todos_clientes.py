@@ -210,8 +210,28 @@ def render():
     """Renderiza la página de todos los clientes"""
     st.markdown(CSS_STYLES, unsafe_allow_html=True)
     
-    st.markdown('<h1 class="main-header">📊 Cartera - Todos los Clientes</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-header">Resumen de deudas de todos los clientes</p>', unsafe_allow_html=True)
+    # Header con botón de sincronización
+    col_titulo, col_btn = st.columns([4, 1])
+    
+    with col_titulo:
+        st.markdown('<h1 class="main-header">📊 Cartera - Todos los Clientes</h1>', unsafe_allow_html=True)
+        st.markdown('<p class="sub-header">Resumen de deudas de todos los clientes</p>', unsafe_allow_html=True)
+    
+    with col_btn:
+        st.write("")  # Espaciado
+        if st.button("🔄 Sincronizar con Alegra", key="sync_cartera_todos", help="Actualizar datos desde Alegra"):
+            with st.spinner("Sincronizando datos desde Alegra..."):
+                try:
+                    import sys
+                    import os
+                    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+                    from services.alegra_api import full_sync_all
+                    full_sync_all()
+                    st.cache_data.clear()
+                    st.success("✅ Sincronización completada exitosamente")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Error al sincronizar: {str(e)}")
     
     # Resumen global
     resumen = get_resumen_global()
