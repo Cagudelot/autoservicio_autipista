@@ -70,7 +70,7 @@ TURNOS_HOY_STYLES = """
 
 @st.cache_data(ttl=30)
 def get_turnos_hoy():
-    """Obtiene todos los turnos del día de hoy con información del empleado"""
+    """Obtiene todos los turnos del día de hoy con información del empleado - Zona horaria Colombia"""
     conn = get_db_connection()
     query = """
         SELECT 
@@ -85,7 +85,7 @@ def get_turnos_hoy():
             END as estado
         FROM turnos t
         INNER JOIN empleados e ON t.id_empleado = e.id_empleado
-        WHERE DATE(t.hora_inicio) = CURRENT_DATE
+        WHERE DATE(t.hora_inicio AT TIME ZONE 'America/Bogota') = (CURRENT_TIMESTAMP AT TIME ZONE 'America/Bogota')::DATE
         ORDER BY t.hora_inicio DESC
     """
     df = pd.read_sql(query, conn)
@@ -94,14 +94,14 @@ def get_turnos_hoy():
 
 @st.cache_data(ttl=30)
 def get_resumen_turnos_hoy():
-    """Obtiene resumen de turnos del día"""
+    """Obtiene resumen de turnos del día - Zona horaria Colombia"""
     conn = get_db_connection()
     
     # Total turnos
     query_total = """
         SELECT COUNT(*) as total
         FROM turnos
-        WHERE DATE(hora_inicio) = CURRENT_DATE
+        WHERE DATE(hora_inicio AT TIME ZONE 'America/Bogota') = (CURRENT_TIMESTAMP AT TIME ZONE 'America/Bogota')::DATE
     """
     df_total = pd.read_sql(query_total, conn)
     
@@ -109,7 +109,7 @@ def get_resumen_turnos_hoy():
     query_activos = """
         SELECT COUNT(*) as activos
         FROM turnos
-        WHERE DATE(hora_inicio) = CURRENT_DATE AND hora_salida IS NULL
+        WHERE DATE(hora_inicio AT TIME ZONE 'America/Bogota') = (CURRENT_TIMESTAMP AT TIME ZONE 'America/Bogota')::DATE AND hora_salida IS NULL
     """
     df_activos = pd.read_sql(query_activos, conn)
     
@@ -117,7 +117,7 @@ def get_resumen_turnos_hoy():
     query_completados = """
         SELECT COUNT(*) as completados
         FROM turnos
-        WHERE DATE(hora_inicio) = CURRENT_DATE AND hora_salida IS NOT NULL
+        WHERE DATE(hora_inicio AT TIME ZONE 'America/Bogota') = (CURRENT_TIMESTAMP AT TIME ZONE 'America/Bogota')::DATE AND hora_salida IS NOT NULL
     """
     df_completados = pd.read_sql(query_completados, conn)
     
@@ -230,7 +230,7 @@ def render():
                     cols = st.columns(min(3, len(df_activos)))
                     for i, (_, row) in enumerate(df_activos.iterrows()):
                         with cols[i % 3]:
-                            hora_entrada = row['hora_inicio'].strftime("%H:%M") if pd.notna(row['hora_inicio']) else "—"
+                            hora_entrada = row['hora_inicio'].astimezone(tz).strftime("%I:%M %p") if pd.notna(row['hora_inicio']) else "—"
                             st.markdown(f"""
                             <div style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); 
                                         border-radius: 10px; padding: 15px; color: white; margin: 5px 0;">

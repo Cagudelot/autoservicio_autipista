@@ -412,15 +412,16 @@ def get_empleado_by_cedula(cedula):
 
 
 def get_turno_abierto_hoy(id_empleado):
-    """Verifica si el empleado tiene un turno abierto hoy (sin hora_salida)"""
+    """Verifica si el empleado tiene un turno abierto hoy (sin hora_salida) - Usando zona horaria Colombia"""
     conn = get_connection()
     cur = conn.cursor()
     
+    # Usar zona horaria de Colombia para comparar fechas
     cur.execute("""
         SELECT id_turno, hora_inicio, hora_salida 
         FROM turnos 
         WHERE id_empleado = %s 
-          AND DATE(hora_inicio) = CURRENT_DATE 
+          AND DATE(hora_inicio AT TIME ZONE 'America/Bogota') = (CURRENT_TIMESTAMP AT TIME ZONE 'America/Bogota')::DATE
           AND hora_salida IS NULL
         ORDER BY hora_inicio DESC
         LIMIT 1
@@ -440,15 +441,16 @@ def get_turno_abierto_hoy(id_empleado):
 
 
 def get_turno_completo_hoy(id_empleado):
-    """Verifica si el empleado ya completó un turno hoy (con entrada y salida)"""
+    """Obtiene todos los turnos completados hoy (con entrada y salida) - Ya no se usa para bloquear"""
     conn = get_connection()
     cur = conn.cursor()
     
+    # Usar zona horaria de Colombia para comparar fechas
     cur.execute("""
         SELECT id_turno, hora_inicio, hora_salida 
         FROM turnos 
         WHERE id_empleado = %s 
-          AND DATE(hora_inicio) = CURRENT_DATE 
+          AND DATE(hora_inicio AT TIME ZONE 'America/Bogota') = (CURRENT_TIMESTAMP AT TIME ZONE 'America/Bogota')::DATE
           AND hora_salida IS NOT NULL
         ORDER BY hora_inicio DESC
         LIMIT 1
@@ -468,11 +470,12 @@ def get_turno_completo_hoy(id_empleado):
 
 
 def registrar_entrada(id_empleado):
-    """Registra la entrada de un empleado (crea un nuevo turno)"""
+    """Registra la entrada de un empleado (crea un nuevo turno) - Usando zona horaria Colombia"""
     conn = get_connection()
     cur = conn.cursor()
     
     try:
+        # Guardar timestamp con zona horaria de Colombia
         cur.execute(
             "INSERT INTO turnos (id_empleado, hora_inicio) VALUES (%s, NOW()) RETURNING id_turno, hora_inicio",
             (id_empleado,)
@@ -510,15 +513,16 @@ def registrar_salida(id_turno):
 
 
 def get_turnos_empleado_hoy(id_empleado):
-    """Obtiene todos los turnos del empleado del día de hoy"""
+    """Obtiene todos los turnos del empleado del día de hoy - Usando zona horaria Colombia"""
     conn = get_connection()
     cur = conn.cursor()
     
+    # Usar zona horaria de Colombia para comparar fechas
     cur.execute("""
         SELECT id_turno, hora_inicio, hora_salida 
         FROM turnos 
         WHERE id_empleado = %s 
-          AND DATE(hora_inicio) = CURRENT_DATE
+          AND DATE(hora_inicio AT TIME ZONE 'America/Bogota') = (CURRENT_TIMESTAMP AT TIME ZONE 'America/Bogota')::DATE
         ORDER BY hora_inicio DESC
     """, (id_empleado,))
     results = cur.fetchall()

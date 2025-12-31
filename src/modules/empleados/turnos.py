@@ -174,30 +174,8 @@ def render():
                 with contenido_placeholder.container():
                     st.markdown("---")
                     
-                    # CASO 1: Ya tiene un turno completo hoy - BLOQUEADO
-                    if turno_completo and not turno_abierto:
-                        tz = pytz.timezone('America/Bogota')
-                        hora_entrada = turno_completo['hora_inicio'].astimezone(tz).strftime("%I:%M %p")
-                        hora_salida = turno_completo['hora_salida'].astimezone(tz).strftime("%I:%M %p")
-                        
-                        st.markdown(f"""
-                        <div class="turno-card bloqueado">
-                            <div class="empleado-nombre">{nombre}</div>
-                            <div class="empleado-cedula">📄 {cedula}</div>
-                            <div class="turno-info-box">
-                                <div class="turno-label">⚠️ Ya completaste tu turno de hoy</div>
-                                <div style="margin-top: 10px;">
-                                    <span>🟢 Entrada: {hora_entrada}</span> | 
-                                    <span>🔴 Salida: {hora_salida}</span>
-                                </div>
-                            </div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                        
-                        st.warning("⚠️ No puedes registrar una nueva entrada. Ya completaste tu turno del día.")
-                    
-                    # CASO 2: Tiene turno abierto - puede marcar SALIDA
-                    elif turno_abierto:
+                    # CASO 1: Tiene turno abierto - puede marcar SALIDA
+                    if turno_abierto:
                         tz = pytz.timezone('America/Bogota')
                         hora_entrada = turno_abierto['hora_inicio'].astimezone(tz).strftime("%I:%M %p")
                         
