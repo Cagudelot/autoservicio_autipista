@@ -4,8 +4,12 @@ Módulo de Empleados - Gestión de Turnos (Ingreso manual, modificación y histo
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta, time, date
+import pytz
 import sys
 import os
+
+# Zona horaria Colombia
+TZ_COLOMBIA = pytz.timezone('America/Bogota')
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
@@ -260,7 +264,8 @@ def render_turnos_abiertos():
                 hora_entrada = turno['hora_inicio'].strftime("%d/%m/%Y %H:%M") if turno['hora_inicio'] else "—"
                 tiempo_transcurrido = ""
                 if turno['hora_inicio']:
-                    delta = datetime.now() - turno['hora_inicio']
+                    now = datetime.now(TZ_COLOMBIA)
+                    delta = now - turno['hora_inicio']
                     horas = int(delta.total_seconds() // 3600)
                     minutos = int((delta.total_seconds() % 3600) // 60)
                     tiempo_transcurrido = f"⏱️ {horas}h {minutos}m trabajando"
@@ -287,7 +292,7 @@ def render_turnos_abiertos():
                     )
                     hora_cierre = st.time_input(
                         "Hora salida",
-                        value=datetime.now().time(),
+                        value=datetime.now(TZ_COLOMBIA).time(),
                         key=f"hora_cierre_{turno['id_turno']}"
                     )
                     

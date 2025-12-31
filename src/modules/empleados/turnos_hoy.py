@@ -136,7 +136,9 @@ def render():
     st.markdown(TURNOS_HOY_STYLES, unsafe_allow_html=True)
     
     st.title("📋 Turnos de Hoy")
-    st.markdown(f"**Fecha:** {datetime.now().strftime('%d de %B de %Y')}")
+    import pytz
+    tz = pytz.timezone('America/Bogota')
+    st.markdown(f"**Fecha:** {datetime.now(tz).strftime('%d de %B de %Y')}")
     st.markdown("---")
     
     # Botón de actualizar

@@ -233,7 +233,7 @@ def render():
                             <div class="empleado-nombre">{nombre}</div>
                             <div class="empleado-cedula">📄 {cedula}</div>
                             <div class="turno-label">👋 ¡Bienvenido!</div>
-                            <div class="turno-hora">{datetime.now().strftime("%H:%M")}</div>
+                            <div class="turno-hora">{datetime.now(pytz.timezone('America/Bogota')).strftime("%I:%M %p")}</div>
                             <div class="turno-info-box">
                                 <div>¿Deseas registrar tu entrada?</div>
                             </div>
