@@ -261,11 +261,19 @@ def render_turnos_abiertos():
             col_info, col_actions = st.columns([3, 2])
             
             with col_info:
-                hora_entrada = turno['hora_inicio'].strftime("%d/%m/%Y %H:%M") if turno['hora_inicio'] else "—"
+                # Convertir hora a zona horaria Colombia para mostrar
+                hora_entrada_utc = turno['hora_inicio']
+                if hora_entrada_utc:
+                    hora_entrada_col = hora_entrada_utc.astimezone(TZ_COLOMBIA)
+                    hora_entrada = hora_entrada_col.strftime("%d/%m/%Y %I:%M %p")
+                else:
+                    hora_entrada = "—"
+                
                 tiempo_transcurrido = ""
                 if turno['hora_inicio']:
                     now = datetime.now(TZ_COLOMBIA)
-                    delta = now - turno['hora_inicio']
+                    hora_inicio_col = turno['hora_inicio'].astimezone(TZ_COLOMBIA)
+                    delta = now - hora_inicio_col
                     horas = int(delta.total_seconds() // 3600)
                     minutos = int((delta.total_seconds() % 3600) // 60)
                     tiempo_transcurrido = f"⏱️ {horas}h {minutos}m trabajando"
@@ -379,10 +387,10 @@ def render_historial():
     # Crear DataFrame para mostrar
     df = pd.DataFrame(historial)
     df['hora_inicio'] = df['hora_inicio'].apply(
-        lambda x: x.strftime("%d/%m/%Y %H:%M") if pd.notna(x) else "—"
+        lambda x: x.astimezone(TZ_COLOMBIA).strftime("%d/%m/%Y %I:%M %p") if pd.notna(x) else "—"
     )
     df['hora_salida'] = df['hora_salida'].apply(
-        lambda x: x.strftime("%d/%m/%Y %H:%M") if pd.notna(x) else "Sin cerrar"
+        lambda x: x.astimezone(TZ_COLOMBIA).strftime("%d/%m/%Y %I:%M %p") if pd.notna(x) else "Sin cerrar"
     )
     
     df_display = df[['id_turno', 'nombre_empleado', 'cedula_empleado', 'hora_inicio', 'hora_salida', 'estado']].copy()
@@ -426,16 +434,20 @@ def render_historial():
             
             col_e1, col_e2 = st.columns(2)
             
+            # Convertir horas UTC a Colombia para mostrar en los inputs
+            hora_inicio_col = turno['hora_inicio'].astimezone(TZ_COLOMBIA) if turno['hora_inicio'] else None
+            hora_salida_col = turno['hora_salida'].astimezone(TZ_COLOMBIA) if turno['hora_salida'] else None
+            
             with col_e1:
                 st.markdown("**🟢 Entrada**")
                 nueva_fecha_entrada = st.date_input(
                     "Nueva fecha entrada",
-                    value=turno['hora_inicio'].date() if turno['hora_inicio'] else date.today(),
+                    value=hora_inicio_col.date() if hora_inicio_col else date.today(),
                     key="edit_fecha_entrada"
                 )
                 nueva_hora_entrada = st.time_input(
                     "Nueva hora entrada",
-                    value=turno['hora_inicio'].time() if turno['hora_inicio'] else time(8, 0),
+                    value=hora_inicio_col.time() if hora_inicio_col else time(8, 0),
                     key="edit_hora_entrada"
                 )
             
@@ -444,12 +456,12 @@ def render_historial():
                 tiene_salida = turno['hora_salida'] is not None
                 nueva_fecha_salida = st.date_input(
                     "Nueva fecha salida",
-                    value=turno['hora_salida'].date() if tiene_salida else date.today(),
+                    value=hora_salida_col.date() if hora_salida_col else date.today(),
                     key="edit_fecha_salida"
                 )
                 nueva_hora_salida = st.time_input(
                     "Nueva hora salida",
-                    value=turno['hora_salida'].time() if tiene_salida else time(17, 0),
+                    value=hora_salida_col.time() if hora_salida_col else time(17, 0),
                     key="edit_hora_salida"
                 )
                 aplicar_salida = st.checkbox(

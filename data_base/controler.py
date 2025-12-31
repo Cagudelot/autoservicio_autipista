@@ -675,7 +675,19 @@ def get_all_empleados_activos():
 
 
 def insert_turno_manual(id_empleado, hora_inicio, hora_salida=None):
-    """Inserta un turno de forma manual con fecha/hora específica"""
+    """Inserta un turno de forma manual con fecha/hora específica (convierte hora Colombia a UTC)"""
+    import pytz
+    
+    # Zona horaria Colombia
+    tz_colombia = pytz.timezone('America/Bogota')
+    
+    # Si hora_inicio no tiene zona horaria, asumimos que es hora Colombia y la convertimos a UTC
+    if hora_inicio.tzinfo is None:
+        hora_inicio = tz_colombia.localize(hora_inicio).astimezone(pytz.UTC)
+    
+    if hora_salida and hora_salida.tzinfo is None:
+        hora_salida = tz_colombia.localize(hora_salida).astimezone(pytz.UTC)
+    
     conn = get_connection()
     cur = conn.cursor()
     
@@ -704,7 +716,19 @@ def insert_turno_manual(id_empleado, hora_inicio, hora_salida=None):
 
 
 def update_turno(id_turno, hora_inicio=None, hora_salida=None):
-    """Actualiza un turno existente"""
+    """Actualiza un turno existente (convierte hora Colombia a UTC)"""
+    import pytz
+    
+    # Zona horaria Colombia
+    tz_colombia = pytz.timezone('America/Bogota')
+    
+    # Convertir horas locales a UTC si no tienen zona horaria
+    if hora_inicio and hora_inicio.tzinfo is None:
+        hora_inicio = tz_colombia.localize(hora_inicio).astimezone(pytz.UTC)
+    
+    if hora_salida and hora_salida.tzinfo is None:
+        hora_salida = tz_colombia.localize(hora_salida).astimezone(pytz.UTC)
+    
     conn = get_connection()
     cur = conn.cursor()
     
@@ -735,7 +759,16 @@ def update_turno(id_turno, hora_inicio=None, hora_salida=None):
 
 
 def cerrar_turno_abierto(id_turno, hora_salida):
-    """Cierra un turno abierto con hora de salida específica"""
+    """Cierra un turno abierto con hora de salida específica (convierte hora Colombia a UTC)"""
+    import pytz
+    
+    # Zona horaria Colombia
+    tz_colombia = pytz.timezone('America/Bogota')
+    
+    # Convertir hora local a UTC si no tiene zona horaria
+    if hora_salida and hora_salida.tzinfo is None:
+        hora_salida = tz_colombia.localize(hora_salida).astimezone(pytz.UTC)
+    
     conn = get_connection()
     cur = conn.cursor()
     

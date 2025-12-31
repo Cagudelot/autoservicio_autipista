@@ -12,9 +12,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config.settings import DB_CONFIG
 
 
-@st.cache_resource
 def get_db_connection():
-    """Crea conexión a la base de datos (cacheada para Streamlit)"""
+    """Crea una nueva conexión a la base de datos cada vez (no cacheada para evitar conexiones cerradas)"""
     return psycopg2.connect(
         host=DB_CONFIG["host"],
         database=DB_CONFIG["database"],
