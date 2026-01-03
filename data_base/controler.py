@@ -1223,3 +1223,393 @@ def set_permisos_usuario(id_usuario, permisos):
     finally:
         cur.close()
         conn.close()
+
+
+# ==================== FUNCIONES DE TOTAL HORAS (NÓMINA) ====================
+
+def get_total_horas_por_fecha(fecha_inicio=None, fecha_fin=None, id_empleado=None):
+    """
+    Obtiene los turnos con cálculo de horas trabajadas.
+    Solo incluye turnos completados (con hora_salida).
+    
+    Args:
+        fecha_inicio: Fecha inicial del filtro (opcional)
+        fecha_fin: Fecha final del filtro (opcional)
+        id_empleado: ID del empleado para filtrar (opcional)
+    
+    Returns:
+        Lista de diccionarios con información de turnos y horas trabajadas
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    
+    query = """
+        SELECT 
+            t.id_turno,
+            e.id_empleado,
+            e.nombre_empleado,
+            e.cedula_empleado,
+            DATE(t.hora_inicio AT TIME ZONE 'America/Bogota') as fecha,
+            t.hora_inicio AT TIME ZONE 'America/Bogota' as hora_entrada,
+            t.hora_salida AT TIME ZONE 'America/Bogota' as hora_salida,
+            EXTRACT(EPOCH FROM (t.hora_salida - t.hora_inicio)) / 3600 as total_horas
+        FROM turnos t
+        INNER JOIN empleados e ON t.id_empleado = e.id_empleado
+        WHERE t.hora_salida IS NOT NULL
+    """
+    
+    params = []
+    
+    if fecha_inicio:
+        query += " AND DATE(t.hora_inicio AT TIME ZONE 'America/Bogota') >= %s"
+        params.append(fecha_inicio)
+    
+    if fecha_fin:
+        query += " AND DATE(t.hora_inicio AT TIME ZONE 'America/Bogota') <= %s"
+        params.append(fecha_fin)
+    
+    if id_empleado:
+        query += " AND t.id_empleado = %s"
+        params.append(id_empleado)
+    
+    query += " ORDER BY t.hora_inicio DESC"
+    
+    cur.execute(query, params)
+    results = cur.fetchall()
+    
+    cur.close()
+    conn.close()
+    
+    return [{
+        'id_turno': r[0],
+        'id_empleado': r[1],
+        'nombre_empleado': r[2],
+        'cedula_empleado': r[3],
+        'fecha': r[4],
+        'hora_entrada': r[5],
+        'hora_salida': r[6],
+        'total_horas': round(r[7], 2) if r[7] else 0
+    } for r in results]
+
+
+def get_resumen_horas_por_empleado(fecha_inicio=None, fecha_fin=None):
+    """
+    Obtiene el resumen de horas trabajadas por empleado.
+    
+    Args:
+        fecha_inicio: Fecha inicial del filtro (opcional)
+        fecha_fin: Fecha final del filtro (opcional)
+    
+    Returns:
+        Lista de diccionarios con resumen por empleado
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    
+    query = """
+        SELECT 
+            e.id_empleado,
+            e.nombre_empleado,
+            e.cedula_empleado,
+            COUNT(t.id_turno) as total_turnos,
+            SUM(EXTRACT(EPOCH FROM (t.hora_salida - t.hora_inicio)) / 3600) as total_horas
+        FROM empleados e
+        LEFT JOIN turnos t ON e.id_empleado = t.id_empleado 
+            AND t.hora_salida IS NOT NULL
+    """
+    
+    params = []
+    conditions = []
+    
+    if fecha_inicio:
+        conditions.append("DATE(t.hora_inicio AT TIME ZONE 'America/Bogota') >= %s")
+        params.append(fecha_inicio)
+    
+    if fecha_fin:
+        conditions.append("DATE(t.hora_inicio AT TIME ZONE 'America/Bogota') <= %s")
+        params.append(fecha_fin)
+    
+    if conditions:
+        query += " AND " + " AND ".join(conditions)
+    
+    query += """
+        GROUP BY e.id_empleado, e.nombre_empleado, e.cedula_empleado
+        ORDER BY e.nombre_empleado
+    """
+    
+    cur.execute(query, params)
+    results = cur.fetchall()
+    
+    cur.close()
+    conn.close()
+    
+    return [{
+        'id_empleado': r[0],
+        'nombre_empleado': r[1],
+        'cedula_empleado': r[2],
+        'total_turnos': r[3] or 0,
+        'total_horas': round(r[4], 2) if r[4] else 0
+    } for r in results]
+
+
+def insertar_total_horas(id_turno, fecha, total_horas):
+    """
+    Inserta o actualiza el registro de total de horas para un turno.
+    
+    Args:
+        id_turno: ID del turno
+        fecha: Fecha del turno
+        total_horas: Total de horas trabajadas
+    
+    Returns:
+        Tupla (id_registro, error)
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    
+    try:
+        # Verificar si ya existe un registro para este turno
+        cur.execute("SELECT id FROM total_horas WHERE id_turno = %s", (id_turno,))
+        result = cur.fetchone()
+        
+        if result:
+            # Actualizar registro existente
+            cur.execute(
+                "UPDATE total_horas SET fecha = %s, total_horas = %s WHERE id_turno = %s RETURNING id",
+                (fecha, total_horas, id_turno)
+            )
+        else:
+            # Insertar nuevo registro
+            cur.execute(
+                "INSERT INTO total_horas (id_turno, fecha, total_horas) VALUES (%s, %s, %s) RETURNING id",
+                (id_turno, fecha, total_horas)
+            )
+        
+        id_registro = cur.fetchone()[0]
+        conn.commit()
+        return id_registro, None
+    except Exception as e:
+        conn.rollback()
+        return None, str(e)
+    finally:
+        cur.close()
+        conn.close()
+
+
+def sincronizar_total_horas():
+    """
+    Sincroniza la tabla total_horas con los turnos completados.
+    Calcula y guarda las horas trabajadas de todos los turnos con hora_salida.
+    
+    Returns:
+        Tupla (cantidad_sincronizados, error)
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    
+    try:
+        # Obtener todos los turnos completados que no estén en total_horas
+        cur.execute("""
+            INSERT INTO total_horas (id_turno, fecha, total_horas)
+            SELECT 
+                t.id_turno,
+                DATE(t.hora_inicio AT TIME ZONE 'America/Bogota'),
+                EXTRACT(EPOCH FROM (t.hora_salida - t.hora_inicio)) / 3600
+            FROM turnos t
+            WHERE t.hora_salida IS NOT NULL
+              AND NOT EXISTS (
+                  SELECT 1 FROM total_horas th WHERE th.id_turno = t.id_turno
+              )
+            RETURNING id
+        """)
+        
+        insertados = len(cur.fetchall())
+        conn.commit()
+        return insertados, None
+    except Exception as e:
+        conn.rollback()
+        return 0, str(e)
+    finally:
+        cur.close()
+        conn.close()
+
+
+# ==================== FUNCIONES DE HORAS EXTRA ====================
+
+def get_horas_extra(fecha_inicio=None, fecha_fin=None, id_empleado=None):
+    """
+    Obtiene los turnos con horas extra (más de 8 horas trabajadas).
+    
+    Args:
+        fecha_inicio: Fecha inicial del filtro (opcional)
+        fecha_fin: Fecha final del filtro (opcional)
+        id_empleado: ID del empleado para filtrar (opcional)
+    
+    Returns:
+        Lista de diccionarios con información de turnos y horas extra
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    
+    query = """
+        SELECT 
+            t.id_turno,
+            th.id_hora,
+            e.id_empleado,
+            e.nombre_empleado,
+            DATE(t.hora_inicio AT TIME ZONE 'America/Bogota') as fecha,
+            t.hora_inicio AT TIME ZONE 'America/Bogota' as hora_entrada,
+            t.hora_salida AT TIME ZONE 'America/Bogota' as hora_salida,
+            EXTRACT(EPOCH FROM (t.hora_salida - t.hora_inicio)) / 3600 as total_horas,
+            CASE 
+                WHEN EXTRACT(EPOCH FROM (t.hora_salida - t.hora_inicio)) / 3600 > 8 
+                THEN EXTRACT(EPOCH FROM (t.hora_salida - t.hora_inicio)) / 3600 - 8
+                ELSE 0
+            END as horas_extra
+        FROM turnos t
+        INNER JOIN empleados e ON t.id_empleado = e.id_empleado
+        LEFT JOIN total_horas th ON t.id_turno = th.id_turno
+        WHERE t.hora_salida IS NOT NULL
+          AND EXTRACT(EPOCH FROM (t.hora_salida - t.hora_inicio)) / 3600 > 8
+    """
+    
+    params = []
+    
+    if fecha_inicio:
+        query += " AND DATE(t.hora_inicio AT TIME ZONE 'America/Bogota') >= %s"
+        params.append(fecha_inicio)
+    
+    if fecha_fin:
+        query += " AND DATE(t.hora_inicio AT TIME ZONE 'America/Bogota') <= %s"
+        params.append(fecha_fin)
+    
+    if id_empleado:
+        query += " AND t.id_empleado = %s"
+        params.append(id_empleado)
+    
+    query += " ORDER BY t.hora_inicio DESC"
+    
+    cur.execute(query, params)
+    results = cur.fetchall()
+    
+    cur.close()
+    conn.close()
+    
+    return [{
+        'id_turno': r[0],
+        'id_hora': r[1],
+        'id_empleado': r[2],
+        'nombre_empleado': r[3],
+        'fecha': r[4],
+        'hora_entrada': r[5],
+        'hora_salida': r[6],
+        'total_horas': round(r[7], 2) if r[7] else 0,
+        'horas_extra': round(r[8], 2) if r[8] else 0
+    } for r in results]
+
+
+def sincronizar_horas_extra():
+    """
+    Sincroniza la tabla horas_extra con los turnos que tienen más de 8 horas.
+    
+    Returns:
+        Tupla (cantidad_sincronizados, error)
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    
+    try:
+        # Insertar horas extra para turnos que trabajaron más de 8 horas
+        cur.execute("""
+            INSERT INTO horas_extra (id_turno, id_hora, total_horas_extra)
+            SELECT 
+                t.id_turno,
+                th.id_hora,
+                EXTRACT(EPOCH FROM (t.hora_salida - t.hora_inicio)) / 3600 - 8
+            FROM turnos t
+            INNER JOIN total_horas th ON t.id_turno = th.id_turno
+            WHERE t.hora_salida IS NOT NULL
+              AND EXTRACT(EPOCH FROM (t.hora_salida - t.hora_inicio)) / 3600 > 8
+              AND NOT EXISTS (
+                  SELECT 1 FROM horas_extra he WHERE he.id_turno = t.id_turno
+              )
+            RETURNING id
+        """)
+        
+        insertados = len(cur.fetchall())
+        conn.commit()
+        return insertados, None
+    except Exception as e:
+        conn.rollback()
+        return 0, str(e)
+    finally:
+        cur.close()
+        conn.close()
+
+
+def get_resumen_horas_extra_por_empleado(fecha_inicio=None, fecha_fin=None):
+    """
+    Obtiene el resumen de horas extra por empleado.
+    
+    Args:
+        fecha_inicio: Fecha inicial del filtro (opcional)
+        fecha_fin: Fecha final del filtro (opcional)
+    
+    Returns:
+        Lista de diccionarios con resumen por empleado
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    
+    query = """
+        SELECT 
+            e.id_empleado,
+            e.nombre_empleado,
+            COUNT(t.id_turno) as total_turnos_extra,
+            SUM(
+                CASE 
+                    WHEN EXTRACT(EPOCH FROM (t.hora_salida - t.hora_inicio)) / 3600 > 8 
+                    THEN EXTRACT(EPOCH FROM (t.hora_salida - t.hora_inicio)) / 3600 - 8
+                    ELSE 0
+                END
+            ) as total_horas_extra
+        FROM empleados e
+        INNER JOIN turnos t ON e.id_empleado = t.id_empleado
+        WHERE t.hora_salida IS NOT NULL
+          AND EXTRACT(EPOCH FROM (t.hora_salida - t.hora_inicio)) / 3600 > 8
+    """
+    
+    params = []
+    
+    if fecha_inicio:
+        query += " AND DATE(t.hora_inicio AT TIME ZONE 'America/Bogota') >= %s"
+        params.append(fecha_inicio)
+    
+    if fecha_fin:
+        query += " AND DATE(t.hora_inicio AT TIME ZONE 'America/Bogota') <= %s"
+        params.append(fecha_fin)
+    
+    query += """
+        GROUP BY e.id_empleado, e.nombre_empleado
+        HAVING SUM(
+            CASE 
+                WHEN EXTRACT(EPOCH FROM (t.hora_salida - t.hora_inicio)) / 3600 > 8 
+                THEN EXTRACT(EPOCH FROM (t.hora_salida - t.hora_inicio)) / 3600 - 8
+                ELSE 0
+            END
+        ) > 0
+        ORDER BY total_horas_extra DESC
+    """
+    
+    cur.execute(query, params)
+    results = cur.fetchall()
+    
+    cur.close()
+    conn.close()
+    
+    return [{
+        'id_empleado': r[0],
+        'nombre_empleado': r[1],
+        'total_turnos_extra': r[2] or 0,
+        'total_horas_extra': round(r[3], 2) if r[3] else 0
+    } for r in results]

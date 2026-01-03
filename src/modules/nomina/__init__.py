@@ -1,5 +1,5 @@
 """
-Módulo de Nómina - En construcción
+Módulo de Nómina
 """
 import streamlit as st
 import sys
@@ -8,15 +8,32 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from src.utils.ui_helpers import CSS_STYLES
+from src.modules.nomina.total_horas_dia import render as render_total_horas
+from src.modules.nomina.horas_extra import render as render_horas_extra
 
 
 def render():
-    """Renderiza el módulo de nómina (en construcción)"""
+    """Renderiza el módulo de nómina con pestañas"""
     st.markdown(CSS_STYLES, unsafe_allow_html=True)
     
     st.title("💰 Nómina")
     st.markdown("---")
     
+    # Crear pestañas
+    tab1, tab2, tab3 = st.tabs(["⏱️ Total Horas Día", "⏰ Horas Extra", "🚧 Más Opciones"])
+    
+    with tab1:
+        render_total_horas()
+    
+    with tab2:
+        render_horas_extra()
+    
+    with tab3:
+        render_en_construccion()
+
+
+def render_en_construccion():
+    """Renderiza la sección en construcción"""
     # Header en construcción
     st.markdown("""
     <div style="
@@ -29,7 +46,7 @@ def render():
     ">
         <div style="font-size: 5em; margin-bottom: 20px;">🚧</div>
         <div style="font-size: 2em; font-weight: 700; margin-bottom: 10px;">Módulo en Construcción</div>
-        <div style="font-size: 1.2em; opacity: 0.9;">Estamos trabajando en este módulo</div>
+        <div style="font-size: 1.2em; opacity: 0.9;">Estamos trabajando en más funcionalidades</div>
         <div style="margin-top: 20px; opacity: 0.8;">
             Próximamente podrás gestionar:
         </div>
@@ -88,4 +105,4 @@ def render():
         """, unsafe_allow_html=True)
     
     st.markdown("---")
-    st.info("💡 Este módulo estará disponible próximamente. Por ahora puedes gestionar los turnos de empleados desde el módulo de Empleados.")
+    st.info("💡 Estas funcionalidades estarán disponibles próximamente.")
