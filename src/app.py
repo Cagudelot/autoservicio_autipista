@@ -52,6 +52,7 @@ try:
     from src.modules.empleados import turnos as turnos_empleado
     from src.modules.empleados import turnos_hoy as turnos_hoy_empleado
     from src.modules.empleados import gestion_turnos
+    from src.modules.empleados import gestion_turnos_2
     from src.modules.configuracion import direcciones_ip
     from src.modules.configuracion import usuarios as gestion_usuarios
     from src.modules import nomina as modulo_nomina
@@ -392,8 +393,8 @@ def render_sidebar_autenticado():
                 opciones_empleados = ["Control de Turnos"]
                 iconos_emp = ["clock-history"]
             else:
-                opciones_empleados = ["Control de Turnos", "Gestión Turnos", "Turnos de Hoy", "Registro", "Lista de Empleados"]
-                iconos_emp = ["clock-history", "tools", "calendar-check", "person-plus", "list-ul"]
+                opciones_empleados = ["Control de Turnos", "Gestión Turnos", "Gestión Turnos 2.0", "Turnos de Hoy", "Registro", "Lista de Empleados"]
+                iconos_emp = ["clock-history", "tools", "camera", "calendar-check", "person-plus", "list-ul"]
             
             submenu = option_menu(
                 menu_title="👥 Empleados",
@@ -501,6 +502,8 @@ def main():
             turnos_empleado.render()
         elif submenu == "Gestión Turnos":
             gestion_turnos.render()
+        elif submenu == "Gestión Turnos 2.0":
+            gestion_turnos_2.render()
         elif submenu == "Turnos de Hoy":
             turnos_hoy_empleado.render()
         elif submenu == "Registro":

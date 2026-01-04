@@ -1613,3 +1613,96 @@ def get_resumen_horas_extra_por_empleado(fecha_inicio=None, fecha_fin=None):
         'total_turnos_extra': r[2] or 0,
         'total_horas_extra': round(r[3], 2) if r[3] else 0
     } for r in results]
+
+
+# ==================== FUNCIONES PARA CONTROL DE TURNOS SIMPLIFICADO ====================
+
+def get_turno_abierto_empleado(id_empleado):
+    """Obtiene el turno abierto (sin hora_salida) de un empleado, sin importar la fecha"""
+    conn = get_connection()
+    cur = conn.cursor()
+    
+    cur.execute("""
+        SELECT id_turno, hora_inicio, hora_salida 
+        FROM turnos 
+        WHERE id_empleado = %s 
+          AND hora_salida IS NULL
+        ORDER BY hora_inicio DESC
+        LIMIT 1
+    """, (id_empleado,))
+    result = cur.fetchone()
+    
+    cur.close()
+    conn.close()
+    
+    if result:
+        return {
+            'id_turno': result[0],
+            'hora_inicio': result[1],
+            'hora_salida': result[2]
+        }
+    return None
+
+
+def insert_turno_con_foto(id_empleado, hora_inicio, foto_bytes=None):
+    """Inserta un nuevo turno (la foto se ignora por ahora - convierte hora Colombia a UTC)"""
+    import pytz
+    
+    tz_colombia = pytz.timezone('America/Bogota')
+    
+    # Convertir a UTC si no tiene zona horaria
+    if hora_inicio.tzinfo is None:
+        hora_inicio = tz_colombia.localize(hora_inicio).astimezone(pytz.UTC)
+    elif str(hora_inicio.tzinfo) != 'UTC':
+        hora_inicio = hora_inicio.astimezone(pytz.UTC)
+    
+    conn = get_connection()
+    cur = conn.cursor()
+    
+    try:
+        # Nota: foto_bytes se ignora por ahora hasta agregar columna en BD
+        cur.execute(
+            """INSERT INTO turnos (id_empleado, hora_inicio) 
+               VALUES (%s, %s) RETURNING id_turno""",
+            (id_empleado, hora_inicio)
+        )
+        id_turno = cur.fetchone()[0]
+        conn.commit()
+        return id_turno, None
+    except Exception as e:
+        conn.rollback()
+        return None, str(e)
+    finally:
+        cur.close()
+        conn.close()
+
+
+def cerrar_turno_con_foto(id_turno, hora_salida, foto_bytes=None):
+    """Cierra un turno (la foto se ignora por ahora - convierte hora Colombia a UTC)"""
+    import pytz
+    
+    tz_colombia = pytz.timezone('America/Bogota')
+    
+    # Convertir a UTC si no tiene zona horaria
+    if hora_salida.tzinfo is None:
+        hora_salida = tz_colombia.localize(hora_salida).astimezone(pytz.UTC)
+    elif str(hora_salida.tzinfo) != 'UTC':
+        hora_salida = hora_salida.astimezone(pytz.UTC)
+    
+    conn = get_connection()
+    cur = conn.cursor()
+    
+    try:
+        # Nota: foto_bytes se ignora por ahora hasta agregar columna en BD
+        cur.execute(
+            """UPDATE turnos SET hora_salida = %s WHERE id_turno = %s""",
+            (hora_salida, id_turno)
+        )
+        conn.commit()
+        return True, None
+    except Exception as e:
+        conn.rollback()
+        return False, str(e)
+    finally:
+        cur.close()
+        conn.close()
