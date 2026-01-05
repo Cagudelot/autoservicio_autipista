@@ -31,11 +31,40 @@ load_dotenv()
 
 BASE_URL = "https://api.alegra.com/api/v1"
 
+# NITs de los negocios Kikes (solo sincronizar estos)
+KIKES_NITS = [
+    "1036944617",  # COMIDAS RAPIDAS KIKE 2
+    "1036224936",  # KIKES PIZZA
+    "1036944616",  # COMIDAS RAPIDAS KIKE (Principal) - verificar NIT correcto
+]
+
+
+def is_kikes_client(client):
+    """Verifica si un cliente es de los Kikes"""
+    nit = client.get("identification", "")
+    nombre = client.get("name", "").upper()
+    # Filtrar por NIT o por nombre que contenga KIKE
+    return nit in KIKES_NITS or "KIKE" in nombre
+
+
+def get_remisiones_excluidas():
+    """Obtiene la lista de números de remisión excluidos de sincronización"""
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT numero_remision FROM remisiones_excluidas")
+        excluidas = [row[0] for row in cur.fetchall()]
+        cur.close()
+        conn.close()
+        return excluidas
+    except Exception:
+        return []
+
 
 def get_credentials():
     """Retorna los headers con las credenciales"""
     email = os.getenv("ALEGRA_EMAIL")
-    api_key = os.getenv("ALEGRA_API_KEY")
+    api_key = os.getenv("ALEGRA_API_KEY") or os.getenv("ALEGRA_TOKEN")
     
     credentials = f"{email}:{api_key}"
     encoded_credentials = base64.b64encode(credentials.encode()).decode()
@@ -47,12 +76,16 @@ def get_credentials():
 
 
 def process_single_remission(remission):
-    """Procesa y guarda una sola remisión en la BD"""
+    """Procesa y guarda una sola remisión en la BD (solo si es de Kikes)"""
     client = remission.get("client", {})
     nit = client.get("identification")
     nombre = client.get("name")
     
     if not nit or not nombre:
+        return False
+    
+    # FILTRO: Solo procesar si es de los Kikes
+    if not is_kikes_client(client):
         return False
     
     # Insertar cliente y obtener id
@@ -236,7 +269,7 @@ def sync_remissions():
 # ==================== FACTURAS ====================
 
 def process_single_invoice(invoice):
-    """Procesa y guarda una sola factura en la BD"""
+    """Procesa y guarda una sola factura en la BD (solo si es de Kikes)"""
     client = invoice.get("client", {})
     nit = client.get("identification")
     nombre = client.get("name")
@@ -246,6 +279,10 @@ def process_single_invoice(invoice):
         return False
     
     if not nit or not nombre:
+        return False
+    
+    # FILTRO: Solo procesar si es de los Kikes
+    if not is_kikes_client(client):
         return False
     
     # Extraer datos de la factura (fullNumber está dentro de numberTemplate)
@@ -654,8 +691,13 @@ def full_sync_remisiones_abiertas():
         if not remissions:
             break
         
-        # Filtrar solo las que tienen missingQuantityToBilled > 0
+        # Filtrar solo las que tienen missingQuantityToBilled > 0 Y son de Kikes
         for rem in remissions:
+            client = rem.get("client", {})
+            # Solo procesar clientes Kikes
+            if not is_kikes_client(client):
+                continue
+            
             items = rem.get("items", [])
             has_pending = any(float(item.get("missingQuantityToBilled", 0)) > 0 for item in items)
             if has_pending:
@@ -668,22 +710,35 @@ def full_sync_remisiones_abiertas():
         # Pequeña pausa para no saturar la API
         time.sleep(0.2)
     
+    # Obtener remisiones excluidas (cerradas manualmente)
+    excluidas = get_remisiones_excluidas()
+    if excluidas:
+        print(f"  ⚠ Remisiones excluidas de sincronización: {excluidas}")
+    
     print(f"  ✓ Total remisiones abiertas en Alegra: {len(all_open_remissions)}")
     
-    # Paso 2: Resetear todas las remisiones en BD a 'closed'
-    print("\n[2/3] Reseteando remisiones en BD a 'closed'...")
-    reset_count = reset_all_remisiones_to_closed()
+    # Paso 2: Resetear todas las remisiones en BD a 'closed' (EXCEPTO las excluidas)
+    print("\n[2/3] Reseteando remisiones en BD a 'closed' (excepto excluidas)...")
+    reset_count = reset_all_remisiones_to_closed(excluidas)
     print(f"  ✓ {reset_count} remisiones marcadas como 'closed'")
     
-    # Paso 3: Actualizar/insertar las abiertas con valores correctos
+    # Paso 3: Actualizar/insertar las abiertas con valores correctos (EXCEPTO excluidas)
     print("\n[3/3] Actualizando remisiones abiertas...")
     
     updated = 0
     inserted = 0
+    skipped = 0
     total_valor = 0
     
     for rem in all_open_remissions:
         numero = int(rem.get("number", 0))
+        
+        # SALTAR remisiones excluidas (cerradas manualmente)
+        if numero in excluidas:
+            skipped += 1
+            print(f"  ⊘ Remisión #{numero} excluida (cerrada manualmente)")
+            continue
+        
         fecha = rem.get("date")
         valor = float(rem.get("total", 0))
         
@@ -707,7 +762,8 @@ def full_sync_remisiones_abiertas():
     
     print(f"\n  ✓ Actualizadas: {updated}")
     print(f"  ✓ Insertadas: {inserted}")
-    print(f"  ✓ Total remisiones abiertas: {len(all_open_remissions)}")
+    print(f"  ⊘ Excluidas (no tocadas): {skipped}")
+    print(f"  ✓ Total remisiones abiertas: {len(all_open_remissions) - skipped}")
     print(f"  ✓ Valor total: ${total_valor:,.2f}")
     
     print("\n" + "=" * 50)
@@ -752,7 +808,7 @@ def full_sync_facturas_abiertas():
             f"{BASE_URL}/invoices",
             headers=headers,
             params=params,
-            timeout=30
+            timeout=120
         )
         
         if response.status_code != 200:
@@ -764,7 +820,7 @@ def full_sync_facturas_abiertas():
         if not invoices:
             break
         
-        # Filtrar facturas con balance > 0 y no Consumidor Final
+        # Filtrar facturas con balance > 0, no Consumidor Final, Y solo Kikes
         for inv in invoices:
             client = inv.get("client", {})
             nit = client.get("identification")
@@ -772,6 +828,10 @@ def full_sync_facturas_abiertas():
             
             # Omitir Consumidor Final
             if nit == "222222222222" or nombre == "Consumidor Final":
+                continue
+            
+            # Solo procesar clientes Kikes
+            if not is_kikes_client(client):
                 continue
             
             balance = float(inv.get("balance", 0))

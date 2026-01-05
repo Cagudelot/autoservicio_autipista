@@ -133,10 +133,8 @@ def render():
     if st.session_state.turno_mensaje:
         if st.session_state.turno_tipo == 'entrada':
             st.success(st.session_state.turno_mensaje)
-            st.balloons()
         elif st.session_state.turno_tipo == 'salida':
             st.success(st.session_state.turno_mensaje)
-            st.balloons()
         # Limpiar mensaje después de mostrarlo
         st.session_state.turno_mensaje = None
         st.session_state.turno_tipo = None

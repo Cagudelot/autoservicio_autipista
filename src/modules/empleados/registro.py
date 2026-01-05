@@ -9,7 +9,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from config.settings import TIPOS_DOCUMENTO
-from data_base.controler import insert_empleado, check_cedula_exists
+from data_base.controler import insert_empleado, check_cedula_exists, get_all_sedes, get_all_roles
 from src.utils.ui_helpers import CSS_STYLES
 
 
@@ -45,6 +45,13 @@ def render():
     with st.form(key="form_registro_empleado", clear_on_submit=True):
         st.subheader("📋 Información del Empleado")
         
+        # Obtener sedes y roles disponibles
+        sedes = get_all_sedes()
+        opciones_sedes = {s['nombre_sede']: s['id_sede'] for s in sedes}
+        
+        roles = get_all_roles()
+        opciones_roles = {r['nombre_rol']: r['id_rol'] for r in roles}
+        
         col1, col2 = st.columns(2)
         
         with col1:
@@ -55,20 +62,45 @@ def render():
             )
         
         with col2:
+            sede_seleccionada = st.selectbox(
+                "Sede *",
+                options=list(opciones_sedes.keys()),
+                help="Seleccione la sede donde trabaja el empleado"
+            )
+        
+        col2a, col2b = st.columns(2)
+        
+        with col2a:
             tipo_documento = st.selectbox(
                 "Tipo de Documento *",
                 options=TIPOS_DOCUMENTO,
                 help="Seleccione el tipo de documento de identidad"
             )
         
-        col3, col4 = st.columns(2)
-        
-        with col3:
+        with col2b:
             numero_documento = st.text_input(
                 "Número de Documento *",
                 placeholder="Ingrese el número de documento",
                 help="Número de identificación del empleado"
             )
+        
+        col3a, col3b = st.columns(2)
+        
+        with col3a:
+            rol_seleccionado = st.selectbox(
+                "Rol *",
+                options=list(opciones_roles.keys()),
+                help="Seleccione el rol del empleado"
+            )
+        
+        with col3b:
+            celular = st.text_input(
+                "Celular",
+                placeholder="Ej: 3001234567",
+                help="Número de celular del empleado (opcional)"
+            )
+        
+        col4, col4b = st.columns(2)
         
         with col4:
             salario_dia = st.number_input(
@@ -77,6 +109,14 @@ def render():
                 step=1000,
                 format="%d",
                 help="Salario diario del empleado en pesos"
+            )
+        
+        with col4b:
+            tipo_empleado = st.selectbox(
+                "Tipo de Empleado *",
+                options=["asegurado", "no_asegurado"],
+                format_func=lambda x: "Asegurado" if x == "asegurado" else "No Asegurado",
+                help="Tipo de contrato del empleado (uso interno)"
             )
         
         st.markdown("---")
@@ -109,12 +149,20 @@ def render():
                 for error in errores:
                     st.error(f"❌ {error}")
             else:
+                # Obtener id_sede y id_rol seleccionados
+                id_sede = opciones_sedes.get(sede_seleccionada)
+                id_rol = opciones_roles.get(rol_seleccionado)
+                
                 # Insertar empleado
                 id_empleado, error = insert_empleado(
                     nombre_empleado=nombre.strip(),
                     tipo_documento=tipo_documento,
                     cedula_empleado=numero_documento.strip(),
-                    salario_dia=int(salario_dia)
+                    salario_dia=int(salario_dia),
+                    id_sede=id_sede,
+                    id_rol=id_rol,
+                    celular=celular.strip() if celular else None,
+                    tipo_empleado=tipo_empleado
                 )
                 
                 if error:

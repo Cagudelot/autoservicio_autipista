@@ -1,6 +1,6 @@
-# Sistema de Administración - Supermercado 🏪
+# Sistema de Administración - Kikes 🏪
 
-Sistema de administración para supermercado desarrollado con Streamlit, que incluye gestión de cartera, empleados y sincronización con Alegra.
+Sistema de administración para Kikes desarrollado con Streamlit, que incluye gestión de CXP Supermercado, empleados y sincronización con Alegra.
 
 ## 📁 Estructura del Proyecto
 
@@ -23,9 +23,8 @@ reportes_alegra/
 │   ├── app.py                 # 🚀 Punto de entrada de la aplicación
 │   │
 │   ├── modules/               # Módulos de la aplicación
-│   │   ├── cartera/          # Módulo de cartera/deudas
+│   │   ├── cartera/          # Módulo CXP Supermercado
 │   │   │   ├── __init__.py
-│   │   │   ├── todos_clientes.py
 │   │   │   └── kikes.py
 │   │   │
 │   │   └── empleados/        # Módulo de empleados
@@ -85,13 +84,12 @@ streamlit run src/app.py
 
 ## 📦 Módulos
 
-### 📊 Cartera
-- **Todos los Clientes**: Vista general de deudas por cliente
-- **Kikes**: Dashboard específico para negocios Kikes
+### 📊 CXP Supermercado
+- **Kikes**: Dashboard de cuentas por pagar del supermercado
 
 ### 👥 Empleados
 - **Registro**: Formulario para registrar nuevos empleados
-- **Lista de Empleados**: (En construcción)
+- **Gestión Turnos 2.0**: Gestión avanzada de turnos
 
 ### ⚙️ Configuración
 - (En construcción)
@@ -113,4 +111,4 @@ streamlit run src/app.py
 
 ## 👤 Autor
 
-Sistema desarrollado para administración de supermercado.
+Sistema desarrollado para administración de Kikes.

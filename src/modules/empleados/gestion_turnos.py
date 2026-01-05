@@ -103,7 +103,20 @@ def render():
     st.markdown(CSS_STYLES, unsafe_allow_html=True)
     st.markdown(GESTION_STYLES, unsafe_allow_html=True)
     
+    # Verificar si es admin_negocio para filtrar por sede
+    user = st.session_state.get('user', {})
+    id_sede_filtro = None
+    nombre_sede = None
+    if user.get('rol') == 'admin_negocio' and user.get('id_sede'):
+        id_sede_filtro = user['id_sede']
+        nombre_sede = user.get('nombre_sede', 'Tu sede')
+    
     st.title("🛠️ Gestión de Turnos")
+    
+    # Mostrar sede si es admin_negocio
+    if id_sede_filtro:
+        st.info(f"📍 Mostrando datos de: **{nombre_sede}**")
+    
     st.markdown("---")
     
     # Header
@@ -123,22 +136,22 @@ def render():
     ])
     
     with tab1:
-        render_ingreso_manual()
+        render_ingreso_manual(id_sede_filtro)
     
     with tab2:
-        render_turnos_abiertos()
+        render_turnos_abiertos(id_sede_filtro)
     
     with tab3:
-        render_historial()
+        render_historial(id_sede_filtro)
 
 
-def render_ingreso_manual():
+def render_ingreso_manual(id_sede_filtro=None):
     """Renderiza el formulario de ingreso manual de turnos"""
     st.subheader("➕ Registrar Turno Manualmente")
     st.markdown("Ingresa los datos del turno que deseas registrar")
     
-    # Obtener empleados
-    empleados = get_all_empleados_activos()
+    # Obtener empleados (filtrados por sede si es admin_negocio)
+    empleados = get_all_empleados_activos(id_sede_filtro)
     
     if not empleados:
         st.warning("⚠️ No hay empleados registrados. Registra empleados primero.")
@@ -236,7 +249,7 @@ def render_ingreso_manual():
             st.rerun()
 
 
-def render_turnos_abiertos():
+def render_turnos_abiertos(id_sede_filtro=None):
     """Renderiza la lista de turnos abiertos con opción de cerrarlos"""
     st.subheader("🔓 Turnos Abiertos")
     st.markdown("Turnos sin hora de salida registrada")
@@ -247,7 +260,7 @@ def render_turnos_abiertos():
         if st.button("🔄 Actualizar", key="refresh_abiertos"):
             st.rerun()
     
-    turnos_abiertos = get_turnos_abiertos()
+    turnos_abiertos = get_turnos_abiertos(id_sede_filtro)
     
     if not turnos_abiertos:
         st.info("📭 No hay turnos abiertos actualmente")
@@ -329,7 +342,7 @@ def render_turnos_abiertos():
             st.markdown("---")
 
 
-def render_historial():
+def render_historial(id_sede_filtro=None):
     """Renderiza el historial de turnos con filtros y opciones de edición"""
     st.subheader("📜 Historial de Turnos")
     st.markdown("Consulta y modifica turnos anteriores")
@@ -337,8 +350,8 @@ def render_historial():
     # Filtros
     col_filtro1, col_filtro2, col_filtro3 = st.columns(3)
     
-    # Obtener empleados para filtro
-    empleados = get_all_empleados_activos()
+    # Obtener empleados para filtro (filtrados por sede si es admin_negocio)
+    empleados = get_all_empleados_activos(id_sede_filtro)
     opciones_empleados = {"Todos": None}
     opciones_empleados.update({f"{e['nombre_empleado']} ({e['cedula_empleado']})": e['id_empleado'] for e in empleados})
     
@@ -369,13 +382,14 @@ def render_historial():
     
     st.markdown("---")
     
-    # Obtener historial
+    # Obtener historial (filtrado por sede si es admin_negocio)
     id_empleado_filtro = opciones_empleados[empleado_filtro]
     historial = get_historial_turnos(
         fecha_inicio=fecha_desde,
         fecha_fin=fecha_hasta,
         id_empleado=id_empleado_filtro,
-        limit=200
+        limit=200,
+        id_sede=id_sede_filtro
     )
     
     if not historial:

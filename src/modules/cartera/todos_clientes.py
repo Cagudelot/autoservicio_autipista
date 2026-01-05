@@ -211,15 +211,15 @@ def render():
     st.markdown(CSS_STYLES, unsafe_allow_html=True)
     
     # Header con botón de sincronización
-    col_titulo, col_btn = st.columns([4, 1])
+    col_titulo, col_btn1, col_btn2 = st.columns([4, 1, 1])
     
     with col_titulo:
         st.markdown('<h1 class="main-header">📊 Cartera - Todos los Clientes</h1>', unsafe_allow_html=True)
         st.markdown('<p class="sub-header">Resumen de deudas de todos los clientes</p>', unsafe_allow_html=True)
     
-    with col_btn:
+    with col_btn1:
         st.write("")  # Espaciado
-        if st.button("🔄 Sincronizar con Alegra", key="sync_cartera_todos", help="Actualizar datos desde Alegra"):
+        if st.button("🔄 Sincronizar Alegra", key="sync_cartera_todos", type="primary", help="Actualizar datos desde Alegra"):
             with st.spinner("Sincronizando datos desde Alegra..."):
                 try:
                     import sys
@@ -232,6 +232,12 @@ def render():
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ Error al sincronizar: {str(e)}")
+    
+    with col_btn2:
+        st.write("")  # Espaciado
+        if st.button("🔃 Refrescar", key="refresh_cartera_todos"):
+            st.cache_data.clear()
+            st.rerun()
     
     # Resumen global
     resumen = get_resumen_global()

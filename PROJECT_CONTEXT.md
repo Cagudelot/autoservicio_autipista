@@ -1,4 +1,4 @@
-# 📋 Contexto del Proyecto - Sistema Administración Supermercado
+# 📋 Contexto del Proyecto - Sistema Administración Kikes
 
 > **Última actualización**: Enero 2026  
 > **Versión**: 1.0.0
@@ -7,7 +7,7 @@
 
 ## 🎯 Descripción General
 
-Sistema de administración para supermercado desarrollado con **Streamlit**. Integra gestión de cartera (facturas/remisiones), control de empleados, turnos, nómina y sincronización con la API de **Alegra** (software contable colombiano).
+Sistema de administración para Kikes desarrollado con **Streamlit**. Integra gestión de CXP Supermercado (facturas/remisiones), control de empleados, turnos, nómina y sincronización con la API de **Alegra** (software contable colombiano).
 
 ---
 
@@ -18,10 +18,10 @@ Sistema de administración para supermercado desarrollado con **Streamlit**. Int
 │                      FRONTEND (Streamlit)                    │
 │                         src/app.py                           │
 ├─────────────────────────────────────────────────────────────┤
-│   📊 Cartera    │  👥 Empleados  │  💰 Nómina  │  ⚙️ Config  │
-│  - todos_clientes│  - registro    │  - horas    │  - IPs      │
-│  - kikes        │  - turnos      │  - extras   │  - usuarios │
-│                 │  - gestión     │             │             │
+│ 📊 CXP Supermercado│ 👥 Empleados │  💰 Nómina  │  ⚙️ Config │
+│  - kikes           │  - registro  │  - horas    │  - IPs     │
+│                    │  - gestión   │  - extras   │  - usuarios│
+│                    │    turnos 2.0│             │            │
 ├─────────────────────────────────────────────────────────────┤
 │                    CAPA DE DATOS                             │
 │           data_base/controler.py (CRUD)                      │
@@ -50,7 +50,7 @@ Sistema de administración para supermercado desarrollado con **Streamlit**. Int
 | `total_horas` | Cálculo de horas trabajadas | → turnos |
 | `horas_extra` | Horas extra calculadas | → turnos, total_horas |
 | `usuarios` | Usuarios del sistema (login) | - |
-| `modulos_sistema` | Módulos disponibles (Cartera, Empleados, etc.) | - |
+| `modulos_sistema` | Módulos disponibles (CXP Supermercado, Empleados, etc.) | - |
 | `usuarios_modulos` | Permisos usuario-módulo | → usuarios, modulos_sistema |
 | `direcciones_ip` | IPs autorizadas para acceso | - |
 
@@ -72,15 +72,14 @@ Sistema de administración para supermercado desarrollado con **Streamlit**. Int
 
 ## 📦 Módulos Actuales
 
-### 1. 📊 Cartera
-- **todos_clientes.py**: Vista general de deudas (facturas + remisiones abiertas)
-- **kikes.py**: Dashboard específico para negocios "Kikes" (cliente especial)
+### 1. 📊 CXP Supermercado
+- **kikes.py**: Dashboard de cuentas por pagar del supermercado
 
 ### 2. 👥 Empleados
 - **registro.py**: Formulario registro de empleados
 - **turnos.py**: Registro de entrada/salida
 - **turnos_hoy.py**: Vista de turnos del día actual
-- **gestion_turnos.py** / **gestion_turnos_2.py**: Gestión avanzada de turnos
+- **gestion_turnos_2.py**: Gestión de turnos 2.0
 
 ### 3. 💰 Nómina
 - **total_horas_dia.py**: Cálculo de horas trabajadas por día
@@ -138,8 +137,8 @@ Las mismas variables en `secrets.toml` para Streamlit Cloud.
 streamlit run src/app.py
 
 # Docker
-docker build -t supermercado-admin .
-docker run -p 8501:8501 supermercado-admin
+docker build -t kikes-admin .
+docker run -p 8501:8501 kikes-admin
 ```
 
 ---
@@ -167,7 +166,6 @@ docker run -p 8501:8501 supermercado-admin
 
 ## 🐛 Problemas Conocidos / TODOs
 
-- [ ] `gestion_turnos.py` tiene dos versiones (_2) - consolidar
 - [ ] Valor de remisión tiene typo en BD: `valor_remsion` (falta 'i')
 - [ ] Manejo de conexiones podría usar context managers
 - [ ] Falta logging estructurado (solo prints de debug)
@@ -180,7 +178,6 @@ docker run -p 8501:8501 supermercado-admin
 2. **Configurar `.env`** con credenciales del nuevo cliente
 3. **Ejecutar `schema.sql`** en PostgreSQL del cliente
 4. **Modificar/eliminar módulos específicos**:
-   - `kikes.py` → Renombrar/eliminar según negocios del cliente
    - Ajustar módulos en `modulos_sistema`
 5. **Actualizar este archivo** con contexto del nuevo cliente
 

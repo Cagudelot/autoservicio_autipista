@@ -14,10 +14,10 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 COPY . .
 
 # Expone el puerto de Streamlit
-EXPOSE 8501
+EXPOSE 8503
 
 # Variables de entorno para Streamlit (opcional)
 ENV PYTHONUNBUFFERED=1
 
 # Comando para ejecutar la app
-CMD ["streamlit", "run", "src/app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+CMD ["streamlit", "run", "src/app.py", "--server.port=8503", "--server.address=0.0.0.0"]

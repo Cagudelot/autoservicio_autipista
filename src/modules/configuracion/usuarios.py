@@ -19,7 +19,8 @@ from data_base.controler import (
     check_username_exists,
     get_all_modulos,
     get_permisos_usuario,
-    set_permisos_usuario
+    set_permisos_usuario,
+    get_all_sedes
 )
 from src.utils.ui_helpers import CSS_STYLES
 
@@ -43,6 +44,10 @@ USUARIOS_STYLES = """
     
     .user-card.empleado {
         background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    }
+    
+    .user-card.admin_negocio {
+        background: linear-gradient(135deg, #f2994a 0%, #f2c94c 100%);
     }
     
     .user-card.inactivo {
@@ -93,8 +98,22 @@ USUARIOS_STYLES = """
         color: #1a1a2e;
     }
     
+    .badge-admin-negocio {
+        background: #f2994a;
+        color: white;
+    }
+    
     .user-card.admin {
         background: linear-gradient(135deg, #f5af19 0%, #f12711 100%);
+    }
+    
+    .user-sede {
+        background: rgba(255,255,255,0.2);
+        padding: 3px 10px;
+        border-radius: 5px;
+        display: inline-block;
+        margin-top: 5px;
+        font-size: 0.9em;
     }
     
     .usuarios-header {
@@ -172,6 +191,10 @@ def render_lista_usuarios():
                 card_class = "master"
                 badge_class = "badge-master"
                 badge_text = "👑 MASTER"
+            elif user.get('rol') == 'admin_negocio':
+                card_class = "admin_negocio"
+                badge_class = "badge-admin-negocio"
+                badge_text = f"🏪 ADMIN NEGOCIO"
             elif user.get('es_admin'):
                 card_class = "admin"
                 badge_class = "badge-admin"
@@ -192,10 +215,12 @@ def render_lista_usuarios():
             
             with col_card:
                 estado = "✅ Activo" if user['activo'] else "❌ Inactivo"
+                sede_info = f"<div class='user-sede'>📍 {user.get('nombre_sede', 'Sin sede')}</div>" if user.get('rol') == 'admin_negocio' and user.get('nombre_sede') else ""
                 st.markdown(f"""
                 <div class="user-card {card_class}">
                     <div class="user-nombre">{user['nombre_completo']}</div>
                     <div class="user-username">@{user['username']}</div>
+                    {sede_info}
                     <div style="margin-top: 10px; opacity: 0.9;">{estado}</div>
                     <span class="user-badge {badge_class}">{badge_text}</span>
                 </div>
@@ -307,6 +332,10 @@ def render_formulario_usuario():
             st.error(msg_text)
         st.session_state.usuario_msg = None
     
+    # Obtener sedes para admin_negocio
+    sedes = get_all_sedes()
+    sedes_opciones = {s['nombre_sede']: s['id_sede'] for s in sedes}
+    
     with st.form(key="form_nuevo_usuario", clear_on_submit=True):
         col1, col2 = st.columns(2)
         
@@ -334,14 +363,30 @@ def render_formulario_usuario():
         st.markdown("**Tipo de Usuario:**")
         tipo_usuario = st.radio(
             "Selecciona el tipo de usuario:",
-            options=["Normal", "Empleados", "Administrador", "Master"],
+            options=["Normal", "Empleados", "Admin Negocio", "Administrador", "Master"],
             horizontal=True,
-            help="👤 Normal: Permisos personalizados | 👷 Empleados: Solo Control de Turnos | 🛡️ Admin: Todo excepto Config y Nómina | 👑 Master: Acceso total"
+            help="""
+            👤 Normal: Permisos personalizados | 
+            👷 Empleados: Solo Control de Turnos | 
+            🏪 Admin Negocio: Gestión turnos y pagos de una sede | 
+            🛡️ Admin: Todo excepto Config y Nómina | 
+            👑 Master: Acceso total
+            """
         )
+        
+        # Selector de sede (se usa solo para Admin Negocio)
+        st.markdown("**📍 Sede Asignada** *(requerido para Admin Negocio)*")
+        sede_seleccionada = st.selectbox(
+            "Selecciona la sede que administrará este usuario",
+            options=list(sedes_opciones.keys()),
+            help="El Admin Negocio solo podrá ver y gestionar datos de esta sede"
+        )
+        id_sede_seleccionada = sedes_opciones.get(sede_seleccionada)
         
         es_empleado = tipo_usuario == "Empleados"
         es_admin = tipo_usuario == "Administrador"
         es_master = tipo_usuario == "Master"
+        es_admin_negocio = tipo_usuario == "Admin Negocio"
         
         st.markdown("---")
         
@@ -367,36 +412,61 @@ def render_formulario_usuario():
             elif password != password_confirm:
                 errores.append("Las contraseñas no coinciden")
             
+            if es_admin_negocio and not id_sede_seleccionada:
+                errores.append("Debes seleccionar una sede para Admin Negocio")
+            
             if errores:
                 for error in errores:
                     st.error(f"❌ {error}")
             else:
+                # Determinar rol
+                rol = 'normal'
+                if es_master:
+                    rol = 'master'
+                elif es_admin:
+                    rol = 'admin'
+                elif es_admin_negocio:
+                    rol = 'admin_negocio'
+                elif es_empleado:
+                    rol = 'empleado'
+                
                 id_usuario, error = insert_usuario(
                     username=username.strip().lower(),
                     password=password,
                     nombre_completo=nombre_completo.strip(),
                     es_master=es_master,
                     es_empleado=es_empleado,
-                    es_admin=es_admin
+                    es_admin=es_admin,
+                    rol=rol,
+                    id_sede=id_sede_seleccionada if es_admin_negocio else None
                 )
                 
                 if error:
                     st.session_state.usuario_msg = ("error", f"Error al crear: {error}")
                 else:
-                    # Si es master, asignar todos los permisos
+                    # Asignar permisos según rol
+                    modulos = get_all_modulos()
+                    
                     if es_master:
-                        modulos = get_all_modulos()
+                        # Master: todos los permisos
                         permisos = [{'id_modulo': m['id_modulo'], 'puede_ver': True, 'puede_editar': True} for m in modulos]
                         set_permisos_usuario(id_usuario, permisos)
-                    # Si es admin, asignar todo excepto Configuración y Nómina
                     elif es_admin:
-                        modulos = get_all_modulos()
+                        # Admin: todo excepto Configuración y Nómina
                         permisos = []
                         for m in modulos:
                             if m['nombre_modulo'] not in ['Configuración', 'Nómina']:
                                 permisos.append({'id_modulo': m['id_modulo'], 'puede_ver': True, 'puede_editar': True})
                         set_permisos_usuario(id_usuario, permisos)
-                    # Si es empleado, asignar solo módulo Empleados
+                    elif es_admin_negocio:
+                        # Admin Negocio: Empleados (gestión turnos, turnos hoy), Nómina (solo pago día y descuentos limitados)
+                        permisos = []
+                        for m in modulos:
+                            if m['nombre_modulo'] == 'Empleados':
+                                permisos.append({'id_modulo': m['id_modulo'], 'puede_ver': True, 'puede_editar': True})
+                            elif m['nombre_modulo'] == 'Nómina':
+                                permisos.append({'id_modulo': m['id_modulo'], 'puede_ver': True, 'puede_editar': False})
+                        set_permisos_usuario(id_usuario, permisos)
                     elif es_empleado:
                         modulos = get_all_modulos()
                         permisos = []

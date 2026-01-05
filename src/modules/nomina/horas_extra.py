@@ -14,7 +14,8 @@ from data_base.controler import (
     get_resumen_horas_extra_por_empleado,
     get_all_empleados_activos,
     sincronizar_horas_extra,
-    sincronizar_total_horas
+    sincronizar_total_horas,
+    get_all_sedes
 )
 from src.utils.ui_helpers import CSS_STYLES
 
@@ -65,14 +66,13 @@ def render():
     st.markdown(HORAS_EXTRA_STYLES, unsafe_allow_html=True)
     
     st.markdown("### ⏰ Horas Extra")
-    st.markdown("Registro de turnos con más de 8 horas trabajadas")
-    st.markdown("---")
+    st.caption("Registro de turnos con más de 8 horas trabajadas")
     
     # ==================== FILTROS ====================
     with st.container():
         st.markdown("#### 🔍 Filtros")
         
-        col1, col2, col3, col4 = st.columns([2, 2, 2, 1])
+        col1, col2, col3, col4, col5 = st.columns([2, 2, 2, 2, 1])
         
         with col1:
             fecha_inicio = st.date_input(
@@ -89,6 +89,20 @@ def render():
             )
         
         with col3:
+            # Filtro por sede
+            sedes = get_all_sedes()
+            opciones_sedes = {"Todas": None}
+            for sede in sedes:
+                opciones_sedes[sede['nombre_sede']] = sede['id_sede']
+            
+            sede_seleccionada = st.selectbox(
+                "Sede",
+                options=list(opciones_sedes.keys()),
+                key="sede_filtro_extra"
+            )
+            id_sede = opciones_sedes[sede_seleccionada]
+        
+        with col4:
             empleados = get_all_empleados_activos()
             opciones_empleados = {"Todos": None}
             for emp in empleados:
@@ -101,7 +115,7 @@ def render():
             )
             id_empleado = opciones_empleados[empleado_seleccionado]
         
-        with col4:
+        with col5:
             st.write("")
             st.write("")
             if st.button("🔄 Sincronizar", help="Sincronizar horas extra", key="sync_extra"):
@@ -121,7 +135,8 @@ def render():
     turnos_extra = get_horas_extra(
         fecha_inicio=fecha_inicio,
         fecha_fin=fecha_fin,
-        id_empleado=id_empleado
+        id_empleado=id_empleado,
+        id_sede=id_sede
     )
     
     if not turnos_extra:
@@ -176,6 +191,7 @@ def render():
     # Renombrar columnas
     df_display = df.rename(columns={
         'nombre_empleado': 'Empleado',
+        'nombre_sede': 'Sede',
         'fecha': 'Fecha',
         'hora_entrada': 'Entrada',
         'hora_salida': 'Salida',
@@ -184,7 +200,7 @@ def render():
     })
     
     # Columnas a mostrar (sin cédula según solicitado)
-    columnas_mostrar = ['Empleado', 'Fecha', 'Entrada', 'Salida', 'Total Horas', 'Horas Extra']
+    columnas_mostrar = ['Empleado', 'Sede', 'Fecha', 'Entrada', 'Salida', 'Total Horas', 'Horas Extra']
     
     st.dataframe(
         df_display[columnas_mostrar],

@@ -1,5 +1,5 @@
 """
-Dashboard Principal - Sistema de Administración Supermercado
+Dashboard Principal - Sistema de Administración Kikes
 Punto de entrada de la aplicación Streamlit con Sistema de Autenticación
 """
 import sys
@@ -12,64 +12,32 @@ _root_dir = os.path.dirname(_current_dir)
 if _root_dir not in sys.path:
     sys.path.insert(0, _root_dir)
 
-# Debug: mostrar path para diagnóstico
-print(f"DEBUG: Current dir: {_current_dir}")
-print(f"DEBUG: Root dir: {_root_dir}")
-print(f"DEBUG: sys.path: {sys.path[:3]}")
+import streamlit as st
+from streamlit_option_menu import option_menu
+from config.settings import APP_CONFIG
+from src.utils.ui_helpers import MENU_STYLES
 
-try:
-    import streamlit as st
-    print("DEBUG: streamlit OK")
-except Exception as e:
-    print(f"DEBUG ERROR streamlit: {e}")
-    raise
+# Importar módulos
+from src.modules.cartera import kikes
+from src.modules.empleados import registro as registro_empleado
+from src.modules.empleados import turnos as turnos_empleado
+from src.modules.empleados import turnos_hoy as turnos_hoy_empleado
+from src.modules.empleados import turnos_hoy_fotos
+from src.modules.empleados import gestion_turnos_2
+from src.modules.empleados import admin_turnos
+from src.modules.empleados import lista_empleados
+from src.modules.configuracion import direcciones_ip
+from src.modules.configuracion import usuarios as gestion_usuarios
+from src.modules.configuracion import roles as gestion_roles
+from src.modules.nomina import total_horas_dia as nomina_total_horas
+from src.modules.nomina import horas_extra as nomina_horas_extra
+from src.modules.nomina import descuentos as nomina_descuentos
+from src.modules.nomina import liquidacion as nomina_liquidacion
+from src.modules.nomina import pago_dia as nomina_pago_dia
+from src.modules.dashboard import principal as dashboard_principal
 
-try:
-    from streamlit_option_menu import option_menu
-    print("DEBUG: option_menu OK")
-except Exception as e:
-    print(f"DEBUG ERROR option_menu: {e}")
-    raise
-
-try:
-    from config.settings import APP_CONFIG
-    print("DEBUG: settings OK")
-except Exception as e:
-    print(f"DEBUG ERROR settings: {e}")
-    raise
-
-try:
-    from src.utils.ui_helpers import MENU_STYLES
-    print("DEBUG: ui_helpers OK")
-except Exception as e:
-    print(f"DEBUG ERROR ui_helpers: {e}")
-    raise
-
-try:
-    # Importar módulos
-    from src.modules.cartera import todos_clientes, kikes
-    from src.modules.empleados import registro as registro_empleado
-    from src.modules.empleados import turnos as turnos_empleado
-    from src.modules.empleados import turnos_hoy as turnos_hoy_empleado
-    from src.modules.empleados import gestion_turnos
-    from src.modules.empleados import gestion_turnos_2
-    from src.modules.configuracion import direcciones_ip
-    from src.modules.configuracion import usuarios as gestion_usuarios
-    from src.modules import nomina as modulo_nomina
-    print("DEBUG: modules OK")
-except Exception as e:
-    print(f"DEBUG ERROR modules: {e}")
-    raise
-
-try:
-    # Importar funciones de autenticación
-    from data_base.controler import autenticar_usuario, get_modulos_usuario
-    print("DEBUG: controler OK")
-except Exception as e:
-    print(f"DEBUG ERROR controler: {e}")
-    raise
-
-print("DEBUG: ALL IMPORTS OK!")
+# Importar funciones de autenticación
+from data_base.controler import autenticar_usuario, get_modulos_usuario
 
 # Configuración de página
 st.set_page_config(
@@ -87,28 +55,6 @@ LOGIN_STYLES = """
     .login-container {
         max-width: 400px;
         margin: 50px auto;
-import sys
-import os
-import logging
-from datetime import datetime
-
-# Diagnóstico: log a archivo y consola
-LOG_FILE = "/tmp/streamlit_app_debug.log"
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s %(levelname)s %(message)s",
-    handlers=[
-        logging.FileHandler(LOG_FILE, mode="a"),
-        logging.StreamHandler(sys.stdout)
-    ]
-)
-logging.info("[INICIO] src/app.py ejecutándose - %s", datetime.now())
-try:
-    logging.info("[DIAG] sys.path: %s", sys.path)
-    logging.info("[DIAG] CWD: %s", os.getcwd())
-    logging.info("[DIAG] Variables de entorno: %s", dict(os.environ))
-except Exception as e:
-    logging.error("[ERROR] Fallo al loguear entorno: %s", e)
         padding: 40px;
         background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
         border-radius: 20px;
@@ -254,7 +200,7 @@ def render_vista_empleados():
         st.markdown("""
         <div class="sidebar-brand">
             <div class="sidebar-brand-icon">🏪</div>
-            <div class="sidebar-brand-title">SUPERMERCADO</div>
+            <div class="sidebar-brand-title">KIKES</div>
             <div class="sidebar-brand-subtitle">Control de Empleados</div>
         </div>
         """, unsafe_allow_html=True)
@@ -268,21 +214,21 @@ def render_vista_empleados():
         
         st.markdown("""
         <div class="sidebar-footer">
-            <small>© 2025 Sistema Supermercado</small>
+            <small>© 2025 Sistema Kikes</small>
         </div>
         """, unsafe_allow_html=True)
     
-    # Contenido principal - Solo control de turnos
+    # Contenido principal - Gestión de Turnos 2.0
     st.markdown("""
     <div class="empleado-header">
         <div style="font-size: 2.5em;">⏰</div>
-        <div style="font-size: 1.5em; font-weight: 600;">Control de Entrada/Salida</div>
+        <div style="font-size: 1.5em; font-weight: 600;">Gestión de Turnos 2.0</div>
         <div style="opacity: 0.9;">Registra tu turno de trabajo</div>
     </div>
     """, unsafe_allow_html=True)
     
-    # Renderizar módulo de turnos
-    turnos_empleado.render()
+    # Renderizar módulo de turnos 2.0
+    gestion_turnos_2.render()
 
 
 # ==================== SIDEBAR AUTENTICADO ====================
@@ -295,7 +241,7 @@ def render_sidebar_autenticado():
         st.markdown("""
         <div class="sidebar-brand">
             <div class="sidebar-brand-icon">🏪</div>
-            <div class="sidebar-brand-title">SUPERMERCADO</div>
+            <div class="sidebar-brand-title">KIKES</div>
             <div class="sidebar-brand-subtitle">Sistema de Administración</div>
         </div>
         """, unsafe_allow_html=True)
@@ -306,6 +252,9 @@ def render_sidebar_autenticado():
             tipo = "👑 MASTER"
         elif user.get('es_admin'):
             tipo = "🛡️ ADMIN"
+        elif user.get('rol') == 'admin_negocio':
+            nombre_sede = user.get('nombre_sede', 'sede')
+            tipo = f"🏬 ADMIN {nombre_sede}"
         elif user['es_empleado']:
             tipo = "👷 EMPLEADOS"
         else:
@@ -319,12 +268,19 @@ def render_sidebar_autenticado():
         
         # Determinar módulos disponibles
         if user['es_master']:
-            modulos_disponibles = ["Cartera", "Empleados", "Nómina", "Configuración"]
+            modulos_disponibles = ["CXP Supermercado", "Empleados", "Nómina", "Configuración"]
+        elif user.get('rol') == 'admin_negocio':
+            # Admin negocio solo ve Empleados y Nómina (con submenús limitados), SIN Dashboard
+            modulos_disponibles = ["Empleados", "Nómina"]
         else:
             modulos_disponibles = [m['nombre_modulo'] for m in st.session_state.modulos_permitidos]
         
+        # Agregar Dashboard al inicio si el usuario tiene acceso a algún módulo (excepto admin_negocio)
+        if modulos_disponibles and user.get('rol') != 'admin_negocio':
+            modulos_disponibles = ["Dashboard"] + modulos_disponibles
+        
         # Crear iconos para los módulos
-        iconos = {"Cartera": "wallet2", "Empleados": "people", "Nómina": "cash-stack", "Configuración": "gear"}
+        iconos = {"Dashboard": "speedometer2", "CXP Supermercado": "wallet2", "Empleados": "people", "Nómina": "cash-stack", "Configuración": "gear"}
         icons_list = [iconos.get(m, "circle") for m in modulos_disponibles]
         
         # Menú de navegación principal
@@ -360,12 +316,12 @@ def render_sidebar_autenticado():
         # Submenú según la opción seleccionada
         submenu = None
         
-        if selected == "Cartera":
+        if selected == "CXP Supermercado":
             st.markdown("---")
             submenu = option_menu(
-                menu_title="📊 Cartera",
-                options=["Todos los Clientes", "Kikes"],
-                icons=["people", "shop"],
+                menu_title="📊 CXP Supermercado",
+                options=["Kikes"],
+                icons=["shop"],
                 default_index=0,
                 styles={
                     "container": {"padding": "0!important", "background-color": "transparent"},
@@ -388,13 +344,21 @@ def render_sidebar_autenticado():
         
         elif selected == "Empleados":
             st.markdown("---")
-            # Si es usuario de empleados, solo mostrar Control de Turnos
-            if user['es_empleado'] and not user['es_master']:
-                opciones_empleados = ["Control de Turnos"]
-                iconos_emp = ["clock-history"]
+            # Si es usuario de empleados, solo mostrar Gestión Turnos 2.0
+            if user['es_empleado'] and not user['es_master'] and user.get('rol') != 'admin_negocio':
+                opciones_empleados = ["Gestión Turnos 2.0"]
+                iconos_emp = ["camera"]
+            # Si es admin_negocio, mostrar Gestión Turnos 2.0 y Turnos de Hoy
+            elif user.get('rol') == 'admin_negocio':
+                opciones_empleados = ["Gestión Turnos 2.0", "Turnos de Hoy"]
+                iconos_emp = ["camera", "calendar-check"]
+            # Si es master, agregar opción de Turnos Hoy con fotos ampliadas
+            elif user['es_master']:
+                opciones_empleados = ["Gestión Turnos 2.0", "Turnos de Hoy", "Turnos Hoy (Fotos)", "Admin Turnos", "Registro", "Lista de Empleados"]
+                iconos_emp = ["camera", "calendar-check", "image", "pencil-square", "person-plus", "list-ul"]
             else:
-                opciones_empleados = ["Control de Turnos", "Gestión Turnos", "Gestión Turnos 2.0", "Turnos de Hoy", "Registro", "Lista de Empleados"]
-                iconos_emp = ["clock-history", "tools", "camera", "calendar-check", "person-plus", "list-ul"]
+                opciones_empleados = ["Gestión Turnos 2.0", "Turnos de Hoy", "Admin Turnos", "Registro", "Lista de Empleados"]
+                iconos_emp = ["camera", "calendar-check", "pencil-square", "person-plus", "list-ul"]
             
             submenu = option_menu(
                 menu_title="👥 Empleados",
@@ -421,14 +385,45 @@ def render_sidebar_autenticado():
             )
         
         elif selected == "Nómina":
-            submenu = None  # Nómina no tiene submenú
+            st.markdown("---")
+            # Si es admin_negocio, solo mostrar Pago por Día y Descuentos
+            if user.get('rol') == 'admin_negocio':
+                opciones_nomina = ["Pago por Día", "Descuentos"]
+                iconos_nom = ["cash", "cash-coin"]
+            else:
+                opciones_nomina = ["Pago por Día", "Liquidación", "Total Horas Día", "Horas Extra", "Descuentos"]
+                iconos_nom = ["cash", "calculator", "clock-history", "hourglass-split", "cash-coin"]
+            
+            submenu = option_menu(
+                menu_title="💰 Nómina",
+                options=opciones_nomina,
+                icons=iconos_nom,
+                default_index=0,
+                styles={
+                    "container": {"padding": "0!important", "background-color": "transparent"},
+                    "icon": {"color": "#ffd93d", "font-size": "14px"},
+                    "nav-link": {
+                        "font-size": "13px",
+                        "text-align": "left",
+                        "margin": "3px 0",
+                        "padding": "10px 15px",
+                        "border-radius": "8px",
+                        "color": "rgba(255,255,255,0.8)",
+                        "--hover-color": "rgba(255,255,255,0.1)"
+                    },
+                    "nav-link-selected": {
+                        "background": "rgba(255, 217, 61, 0.2)",
+                        "color": "#ffd93d"
+                    },
+                }
+            )
         
         elif selected == "Configuración":
             st.markdown("---")
             submenu = option_menu(
                 menu_title="⚙️ Configuración",
-                options=["Direcciones IP", "Usuarios", "Parámetros"],
-                icons=["hdd-network", "people-fill", "sliders"],
+                options=["Direcciones IP", "Usuarios", "Roles", "Parámetros"],
+                icons=["hdd-network", "people-fill", "person-badge", "sliders"],
                 default_index=0,
                 styles={
                     "container": {"padding": "0!important", "background-color": "transparent"},
@@ -458,7 +453,7 @@ def render_sidebar_autenticado():
         # Footer
         st.markdown("""
         <div class="sidebar-footer">
-            <small>© 2025 Sistema Supermercado</small>
+            <small>© 2025 Sistema Kikes</small>
         </div>
         """, unsafe_allow_html=True)
         
@@ -491,35 +486,46 @@ def main():
     menu_principal, submenu = render_sidebar_autenticado()
     
     # Renderizar contenido según selección
-    if menu_principal == "Cartera":
-        if submenu == "Todos los Clientes":
-            todos_clientes.render()
-        elif submenu == "Kikes":
+    if menu_principal == "Dashboard":
+        dashboard_principal.render()
+    
+    elif menu_principal == "CXP Supermercado":
+        if submenu == "Kikes":
             kikes.render()
     
     elif menu_principal == "Empleados":
-        if submenu == "Control de Turnos":
-            turnos_empleado.render()
-        elif submenu == "Gestión Turnos":
-            gestion_turnos.render()
-        elif submenu == "Gestión Turnos 2.0":
+        if submenu == "Gestión Turnos 2.0":
             gestion_turnos_2.render()
         elif submenu == "Turnos de Hoy":
             turnos_hoy_empleado.render()
+        elif submenu == "Turnos Hoy (Fotos)":
+            turnos_hoy_fotos.render()
+        elif submenu == "Admin Turnos":
+            admin_turnos.render()
         elif submenu == "Registro":
             registro_empleado.render()
         elif submenu == "Lista de Empleados":
-            st.title("👥 Lista de Empleados")
-            st.info("🚧 Módulo en construcción")
+            lista_empleados.render()
     
     elif menu_principal == "Nómina":
-        modulo_nomina.render()
+        if submenu == "Pago por Día":
+            nomina_pago_dia.render()
+        elif submenu == "Liquidación":
+            nomina_liquidacion.render()
+        elif submenu == "Total Horas Día":
+            nomina_total_horas.render()
+        elif submenu == "Horas Extra":
+            nomina_horas_extra.render()
+        elif submenu == "Descuentos":
+            nomina_descuentos.render()
     
     elif menu_principal == "Configuración":
         if submenu == "Direcciones IP":
             direcciones_ip.render()
         elif submenu == "Usuarios":
             gestion_usuarios.render()
+        elif submenu == "Roles":
+            gestion_roles.render()
         elif submenu == "Parámetros":
             st.title("⚙️ Parámetros")
             st.info("🚧 Módulo en construcción")
